@@ -177,3 +177,54 @@ export const deleteFile = async ({
     handleError(error, "Failed to rename file");
   }
 };
+
+// For dashboard
+export const getTotalSpaceUsed = async () => {
+  
+  try {
+    const { databases } = await createAdminClient();
+
+    // authenticate user
+    const currentUser = await getCurrentUser();
+    if (!currentUser) throw new Error("User not found");
+
+    // fetch files
+    const files = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.filesCollectionId,
+      [Query.equal("owner", [currentUser.$id])],
+    );
+
+    // organise data by category
+    const totalSpace = {
+      image: { size: 0, latestDate: "" },
+      document: { size: 0, latestDate: "" },
+      video: { size: 0, latestDate: "" },
+      audio: { size: 0, latestDate: "" },
+      other: { size: 0, latestDate: "" },
+      used: 0,
+      all: 2 * 1024 * 1024 * 1024, // 2GB available bucket storage
+    };
+
+    // loop through files and categorise based on type.
+    // while looping, update total size and check the latest modified date data for each file category
+    files.documents.forEach((file) => {
+      const fileType = file.type as FileType;
+      totalSpace[fileType].size += file.size;
+      totalSpace.used += file.size;
+
+      if (
+        !totalSpace[fileType].latestDate ||
+        new Date(file.$updatedAt) > new Date(totalSpace[fileType].latestDate)
+      ) {
+        totalSpace[fileType].latestDate = file.$updatedAt;
+      }
+    });
+    
+    return parseStringify(totalSpace);
+    
+  } catch (error) {
+    handleError(error, "Failed to get total space used");
+    
+  }
+}
