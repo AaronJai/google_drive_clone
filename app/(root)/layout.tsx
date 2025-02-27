@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 
+// nextjs cant render a page statically since it uses cookies
+// so we need to force this page to be dynamic
+export const dynamic = "force-dynamic";
+
 const Layout = async ({ children }: { children: React.ReactNode }) => {
   const currentUser = await getCurrentUser();
 
