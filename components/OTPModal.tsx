@@ -15,7 +15,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { verifySecret, sendEmailOTP } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
@@ -31,18 +31,25 @@ const OtpModal = ({
   const [isOpen, setIsOpen] = useState(true);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [shake, setShake] = useState(false);
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setIsLoading(true);
 
     try {
       // call the API to verify the OTP
       const sessionId = await verifySecret({ accountId, password });
 
-      if (sessionId) router.push("/");
+      if (sessionId) {
+        router.push("/");
+      } else {
+        setShake(true);
+        setTimeout(() => setShake(false), 500); // remove shake class after animation
+      }
     } catch (error) {
       console.log("Failed to verify OTP", error);
+      setShake(true);
+      setTimeout(() => setShake(false), 500); // remove shake class after animation
     }
 
     setIsLoading(false);
@@ -52,6 +59,12 @@ const OtpModal = ({
     // call API to resend OTP
     await sendEmailOTP({ email });
   };
+
+  useEffect(() => {
+    if (password.length === 6) {
+      handleSubmit();
+    }
+  }, [password]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
@@ -75,7 +88,7 @@ const OtpModal = ({
         </AlertDialogHeader>
 
         <InputOTP maxLength={6} value={password} onChange={setPassword}>
-          <InputOTPGroup className="shad-otp">
+          <InputOTPGroup className={`shad-otp ${shake ? "shake" : ""}`}>
             <InputOTPSlot index={0} className="shad-otp-slot" />
             <InputOTPSlot index={1} className="shad-otp-slot" />
             <InputOTPSlot index={2} className="shad-otp-slot" />
